@@ -22,6 +22,14 @@ Python3.6 and above
 
 EveNG or live lab environment running FortiOS 7.x and above (should work with lower versions as well)
 
+You also need the requests library which you can get using the command below 
+
+```
+pip install requests 
+
+```
+
+
 ## Step 1 - Logging into the Firewall and extracting Session Cookie
 
 This step assumes the presence of at least one superadmin user created on the firewall post-setup.
