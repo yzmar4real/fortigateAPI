@@ -22,26 +22,34 @@ Python3.6 and above
 
 EveNG or live lab environment running FortiOS 7.x and above (should work with lower versions as well)
 
-## Step 1 - Logging into the Firewall 
+## Step 1 - Logging into the Firewall and extracting Session Cookie
 
 This step assumes the presence of at least one superadmin user created on the firewall post-setup.
    
 ```
-import requests
-
-fortigate_ip = "192.168.1.1"
-username = "admin"
-password = "your_password"
-login_url = f"https://{fortigate_ip}/logincheck"
-
+# Log in and get the session cookie
+login_url = f"{base_url}/logincheck"
+login_payload = {
+    'username': username,
+    'secretkey': password
+}
 session = requests.session()
-login_payload = {'username': username, 'secretkey': password}
 response = session.post(login_url, data=login_payload, verify=False)
 
-if response.status_code == 200:
-    print("Login successful")
-else:
-    print("Login failed")
+if response.status_code != 200:
+    print("Login failed!")
+    print(response.text)
+    exit()
+
+# Get CSRF token
+csrf_token = session.cookies.get('ccsrftoken')
+if csrf_token:
+    csrf_token = csrf_token.strip('"')
+
+headers = {
+    'X-CSRFTOKEN': csrf_token,
+    'Content-Type': 'application/json'
+}
 
 ```
 
@@ -52,14 +60,24 @@ In this use case, i intend to capture configuration backups which is under the s
 It is advisable to only grant the specific permissions required per use-case.
    
 ```
-profile_url = f"https://{fortigate_ip}/api/v2/cmdb/system/admin"
-profile_payload = {"name": "restAPI", "accprofile": "super_admin"}
 
-response = session.post(profile_url, json=profile_payload, verify=False)
+# Create an authorization profile called restAPI
+# Create a user called restapi_admin
+# user_url = f"{base_url}/api/v2/cmdb/user/local"
+user_url = f"{base_url}/api/v2/cmdb/system/api-user"
+user_payload = {
+    "name": "restapi_admin22",
+    "password": "StrongPassword123",
+    "accprofile": "restAPI_special"
+}
+response = session.post(user_url, headers=headers, json=user_payload, verify=False)
+
 if response.status_code == 200:
-    print("Profile created successfully")
+    print("User restapi_admin created successfully!")
 else:
-    print("Failed to create profile")
+    print(response.status_code)
+    print("Failed to create user!")
+    print(response.text)
 ```
 
 ## Step 3 - Creating a specific user for the restAPI admin calls. 
@@ -78,16 +96,27 @@ else:
 ## Step 4 - Generating the API Token
    
 ```
-token_url = f"https://{fortigate_ip}/api/v2/system/api-user/generate"
-token_payload = {"name": "restapi_admin", "profile": "restAPI", "vdom": "root"}
+# Generate a token id for the user restapi_admin
+# Correct endpoint for generating API token
+token_url = f"{base_url}/api/v2/monitor/system/api-user/generate-key"
+token_payload = {
+    "api-user": "restapi_admin22",
+    "vdom": "root"       
+}
+response = session.post(token_url, headers=headers, json=token_payload, verify=False)
 
-response = session.post(token_url, json=token_payload, verify=False)
 if response.status_code == 200:
-    token = response.json().get('token')
-    print(f"Token generated successfully: {token}")
+    token_data = response.json()
+    if 'access_token' in token_data['results'].keys():
+        token_id = token_data['results']['access_token']
+        print("Token generated successfully!")
+        print(f"Token ID: {token_id}")
+    else:
+        print("Token generation failed!")
+        print(token_data)
 else:
-    print("Failed to generate token")
-
+    print("Failed to generate token!")
+    print(response.text)
 ```
 
 ## Putting it all together 
