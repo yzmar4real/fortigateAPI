@@ -61,46 +61,52 @@ It is advisable to only grant the specific permissions required per use-case.
    
 ```
 
-# Create an authorization profile called restAPI
-# Create a user called restapi_admin
-# user_url = f"{base_url}/api/v2/cmdb/user/local"
+# Create an authorization profile.
+
+profile_url = f"{base_url}/api/v2/cmdb/system/accprofile"
+profile_payload = {
+    "name": "your-auth-profile",
+    "sysgrp": "read-write"
+}
+response = session.post(profile_url, headers=headers, json=profile_payload, verify=False)
+
+if response.status_code == 200:
+    print(f"Authorization profile {your-auth-profile} created successfully!")
+else:
+    print(response.status_code)    
+    print("Failed to create authorization profile!")
+    print(response.text)
+```
+
+## Step 3 - Creating a specific user for the restAPI admin calls.
+   
+```
+# Create a RestAPI User (You can modify this to match your requirements)
+
 user_url = f"{base_url}/api/v2/cmdb/system/api-user"
 user_payload = {
-    "name": "restapi_admin22",
-    "password": "StrongPassword123",
-    "accprofile": "restAPI_special"
+    "name": "your-restapi-user",
+    "password": "your-password",
+    "accprofile": "your-auth-profile"
 }
 response = session.post(user_url, headers=headers, json=user_payload, verify=False)
 
 if response.status_code == 200:
-    print("User restapi_admin created successfully!")
+    print("User created successfully!")
 else:
     print(response.status_code)
     print("Failed to create user!")
     print(response.text)
 ```
 
-## Step 3 - Creating a specific user for the restAPI admin calls. 
-   
-```
-user_url = f"https://{fortigate_ip}/api/v2/cmdb/user/local"
-user_payload = {"name": "restapi_admin", "password": "StrongPassword123"}
-
-response = session.post(user_url, json=user_payload, verify=False)
-if response.status_code == 200:
-    print("User created successfully")
-else:
-    print("Failed to create user")
-```
-
 ## Step 4 - Generating the API Token
    
 ```
 # Generate a token id for the user restapi_admin
-# Correct endpoint for generating API token
+
 token_url = f"{base_url}/api/v2/monitor/system/api-user/generate-key"
 token_payload = {
-    "api-user": "restapi_admin22",
+    "api-user": "your-restapi-user",
     "vdom": "root"       
 }
 response = session.post(token_url, headers=headers, json=token_payload, verify=False)
